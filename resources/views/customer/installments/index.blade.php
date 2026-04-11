@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>كِسرة · أقساطي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* كل الـ CSS الأصلي (تم نقله كاملاً) */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #1F2937; font-family: 'Cairo', sans-serif; line-height: 1.5; color: #EDE9FE; overflow-x: hidden; }
+    .dashboard { display: flex; min-height: 100vh; }
+    .sidebar { width: 280px; background: rgba(31,41,55,0.6); backdrop-filter: blur(16px); border-left: 1px solid rgba(233,179,251,0.25); padding: 2rem 1.5rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: right 0.3s ease; }
+    .sidebar-logo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2.5rem; }
+    .logo-icon { background: linear-gradient(135deg, #FF4F8B, #E9B3FB); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: white; }
+    .logo-text { font-size: 1.5rem; font-weight: 800; background: linear-gradient(120deg, #FFF, #E9B3FB); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 0.5rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 20px; color: #EDE9FE; text-decoration: none; transition: 0.2s; font-weight: 500; }
+    .nav-item i { width: 24px; font-size: 1.1rem; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: #FFB3C7; }
+    .nav-item.active { background: linear-gradient(135deg, rgba(255,79,139,0.2), rgba(233,179,251,0.2)); color: #FFB3C7; border-right: 3px solid #FF4F8B; }
+    .nav-item.logout { margin-top: auto; background: none; border: none; width: 100%; text-align: right; cursor: pointer; color: #FFB3C7; }
+    .main-content { flex: 1; padding: 2rem; overflow-x: auto; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(120deg, #FFF, #E9B3FB); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .page-title p { color: #EDE9FE; font-size: 0.9rem; }
+    .user-menu { display: flex; align-items: center; gap: 1rem; background: rgba(255,255,255,0.05); backdrop-filter: blur(8px); padding: 0.5rem 1.2rem; border-radius: 60px; border: 1px solid rgba(233,179,251,0.3); }
+    .user-menu:hover { border-color: #FFB3C7; background: rgba(255,255,255,0.08); }
+    .user-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #FF4F8B, #E9B3FB); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+    .user-name { font-weight: 600; color: white; }
+    .search-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .search-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(233,179,251,0.3); border-radius: 60px; padding: 0.7rem 1rem; color: white; font-family: inherit; outline: none; }
+    .search-input:focus { border-color: #FF4F8B; }
+    .filter-select { background: rgba(255,255,255,0.05); border: 1px solid rgba(233,179,251,0.3); border-radius: 60px; padding: 0.7rem 1rem; color: white; font-family: inherit; cursor: pointer; }
+    .installments-wrapper { background: rgba(31,41,55,0.5); backdrop-filter: blur(12px); border-radius: 28px; padding: 1.5rem; border: 1px solid rgba(233,179,251,0.25); overflow-x: auto; }
+    .section-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: white; }
+    .section-title i { color: #FFB3C7; }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    th, td { padding: 1rem 0.5rem; border-bottom: 1px solid rgba(233,179,251,0.2); }
+    th { font-weight: 700; color: #FFB3C7; font-size: 0.85rem; }
+    td { color: #EDE9FE; }
+    .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 40px; font-size: 0.75rem; font-weight: 600; }
+    .status-paid { background: rgba(46,125,50,0.2); color: #A5D6A7; }
+    .status-pending { background: rgba(237,108,2,0.2); color: #FFB74D; }
+    .status-overdue { background: rgba(244,67,54,0.2); color: #FFCDD2; }
+    .btn-view { background: rgba(255,255,255,0.05); border: 1px solid rgba(233,179,251,0.3); padding: 0.4rem 1rem; border-radius: 40px; font-size: 0.75rem; font-weight: 600; cursor: pointer; color: #FFB3C7; transition: 0.2s; }
+    .btn-view:hover { background: rgba(255,179,199,0.2); border-color: #FFB3C7; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: rgba(31,41,55,0.95); backdrop-filter: blur(16px); border-radius: 32px; padding: 2rem; max-width: 500px; width: 90%; border: 1px solid rgba(233,179,251,0.3); }
+    .modal-content h3 { font-size: 1.5rem; font-weight: 800; color: white; margin-bottom: 1rem; }
+    .modal-content p { margin: 0.5rem 0; color: #EDE9FE; }
+    .modal-close { margin-top: 1.5rem; background: #FF4F8B; border: none; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: 700; color: white; cursor: pointer; }
+    .menu-toggle { display: none; position: fixed; top: 1rem; left: 1rem; z-index: 100; background: rgba(31,41,55,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(233,179,251,0.3); padding: 0.5rem; border-radius: 12px; cursor: pointer; color: #FFB3C7; font-size: 1.2rem; }
+    @media (max-width: 768px) { .sidebar { position: fixed; right: -280px; top: 0; z-index: 99; background: rgba(31,41,55,0.95); transition: right 0.3s; } .sidebar.open { right: 0; } .menu-toggle { display: block; } .main-content { padding: 1rem; } .search-bar { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+<div class="dashboard">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon"><i class="fas fa-bolt"></i></div><span class="logo-text">كِسرة</span></div>
+    <nav class="sidebar-nav">
+      <a href="{{ route('customer.dashboard') }}" class="nav-item"><i class="fas fa-home"></i> الرئيسية</a>
+      <a href="{{ route('customer.profile.edit') }}" class="nav-item"><i class="fas fa-user"></i> حسابي</a>
+      <a href="{{ route('customer.orders.index') }}" class="nav-item"><i class="fas fa-shopping-bag"></i> طلباتي</a>
+      <a href="{{ route('customer.installments.index') }}" class="nav-item active"><i class="fas fa-calendar-alt"></i> أقساطي</a>
+      <form method="POST" action="{{ route('logout') }}" style="margin-top:auto;">@csrf<button type="submit" class="nav-item logout"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button></form>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-bar">
+      <div class="page-title"><h1>أقساطي</h1><p>تتبع دفعات التقسيط الخاصة بك</p></div>
+      <div class="user-menu"><div class="user-avatar">{{ substr(auth()->user()->name, 0, 1) }}</div><div class="user-name">{{ auth()->user()->name }}</div><i class="fas fa-chevron-down"></i></div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="search-bar">
+      <input type="text" id="searchInput" class="search-input" placeholder="بحث باسم المنتج...">
+      <select id="statusFilter" class="filter-select">
+        <option value="all">جميع الحالات</option>
+        <option value="paid">مدفوع</option>
+        <option value="pending">معلق</option>
+        <option value="overdue">متأخر</option>
+      </select>
+    </div>
+
+    <div class="installments-wrapper">
+      <div class="section-title"><i class="fas fa-list-ul"></i> جدول الأقساط</div>
+      <div style="overflow-x: auto;">
+        <table id="installmentsTable">
+          <thead><tr><th>المنتج</th><th>القسط</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead>
+          <tbody id="installmentsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="installmentModal" class="modal">
+  <div class="modal-content">
+    <h3>تفاصيل القسط</h3>
+    <div id="modalContent"></div>
+    <button class="modal-close" id="closeModalBtn">إغلاق</button>
+  </div>
+</div>
+
+<script>
+  // Pass installments data from Laravel to JavaScript
+  const installments = @json($installments->items()); // using paginated items
+
+  function renderInstallments() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const tbody = document.getElementById('installmentsTableBody');
+    tbody.innerHTML = '';
+    const filtered = installments.filter(inst => {
+      const productName = inst.order?.items?.[0]?.product?.name || 'منتج';
+      const matchesSearch = productName.toLowerCase().includes(searchTerm);
+      const matchesStatus = statusFilter === 'all' || inst.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    filtered.forEach(inst => {
+      const productName = inst.order?.items?.[0]?.product?.name || 'منتج';
+      const row = tbody.insertRow();
+      row.insertCell(0).textContent = productName;
+      row.insertCell(1).textContent = inst.amount.toLocaleString() + ' د.أ';
+      row.insertCell(2).textContent = new Date(inst.due_date).toLocaleDateString('ar-EG');
+      const statusCell = row.insertCell(3);
+      const statusSpan = document.createElement('span');
+      let statusClass = '';
+      let statusText = '';
+      switch(inst.status) {
+        case 'paid': statusClass = 'status-paid'; statusText = 'مدفوع'; break;
+        case 'pending': statusClass = 'status-pending'; statusText = 'معلق'; break;
+        case 'overdue': statusClass = 'status-overdue'; statusText = 'متأخر'; break;
+        default: statusClass = 'status-pending'; statusText = inst.status;
+      }
+      statusSpan.className = `status-badge ${statusClass}`;
+      statusSpan.textContent = statusText;
+      statusCell.appendChild(statusSpan);
+      const actionsCell = row.insertCell(4);
+      const viewBtn = document.createElement('button');
+      viewBtn.className = 'btn-view';
+      viewBtn.innerHTML = '<i class="fas fa-eye"></i> عرض';
+      viewBtn.onclick = () => showInstallmentDetails(inst);
+      actionsCell.appendChild(viewBtn);
+    });
+  }
+
+  function showInstallmentDetails(inst) {
+    const modal = document.getElementById('installmentModal');
+    const modalContent = document.getElementById('modalContent');
+    const productName = inst.order?.items?.[0]?.product?.name || 'منتج';
+    const orderNumber = inst.order?.order_number || 'غير معروف';
+    modalContent.innerHTML = `
+      <p><strong>المنتج:</strong> ${productName}</p>
+      <p><strong>قيمة القسط:</strong> ${inst.amount.toLocaleString()} د.أ</p>
+      <p><strong>تاريخ الاستحقاق:</strong> ${new Date(inst.due_date).toLocaleDateString('ar-EG')}</p>
+      <p><strong>الحالة:</strong> ${inst.status === 'paid' ? 'مدفوع' : inst.status === 'pending' ? 'معلق' : 'متأخر'}</p>
+      <p><strong>رقم الطلب:</strong> #${orderNumber}</p>
+      <p><strong>طريقة الدفع:</strong> كِسرة (تقسيط)</p>
+    `;
+    modal.style.display = 'flex';
+  }
+
+  document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('installmentModal').style.display = 'none';
+  });
+  window.addEventListener('click', (e) => {
+    const modal = document.getElementById('installmentModal');
+    if (e.target === modal) modal.style.display = 'none';
+  });
+  document.getElementById('searchInput').addEventListener('input', renderInstallments);
+  document.getElementById('statusFilter').addEventListener('change', renderInstallments);
+
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+    window.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+      }
+    });
+  }
+
+  renderInstallments();
+</script>
+</body>
+</html>
