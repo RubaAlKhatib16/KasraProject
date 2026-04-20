@@ -13,15 +13,26 @@ use App\Http\Controllers\Customer\DashboardController as CustomerDashboardContro
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\InstallmentController as CustomerInstallmentController;
+use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
 // ===================== الصفحات العامة =====================
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
 
-// عرض المتاجر (JSON)
-Route::get('/stores', [StoreController::class, 'index']);
+Route::get('/', [PublicController::class, 'home'])->name('home');
+Route::get('/stores', [PublicController::class, 'stores'])->name('public.stores');
+Route::get('/store/{id}', [PublicController::class, 'storePage'])->name('public.store-page');
+Route::get('/how-it-works', [PublicController::class, 'howItWorks'])->name('public.how-it-works');
+Route::get('/business', [PublicController::class, 'business'])->name('public.business');
+Route::get('/user', [PublicController::class, 'user'])->name('public.user');
+Route::get('/help', [PublicController::class, 'help'])->name('public.help');
+// صفحات عامة إضافية (مؤقتة لحين إنشاء الـ views)
+Route::get('/how-it-works', function () {
+    return view('public.how-it-works');
+})->name('public.how-it-works');
+
+Route::get('/business', function () {
+    return view('public.business');
+})->name('public.business');
 
 // ===================== مسارات المصادقة (Breeze) =====================
 require __DIR__ . '/auth.php';
@@ -85,3 +96,6 @@ Route::middleware(['auth', 'seller'])->prefix('seller')->name('seller.')->group(
     Route::get('/profile', [SellerProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [SellerProfileController::class, 'update'])->name('profile.update');
 });
+
+
+

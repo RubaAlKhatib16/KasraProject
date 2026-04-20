@@ -33,4 +33,14 @@ public function store()
 {
     return $this->belongsTo(Store::class);
 }
+
+public function images()
+{
+    return $this->hasMany(ProductImage::class)->orderBy('order');
+}
+
+public function getGalleryImagesAttribute()
+{
+    return $this->images->pluck('image_path')->toArray();
+}
 }

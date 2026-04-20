@@ -271,6 +271,11 @@
                     <small>يُفضل صورة مربعة (jpg, png, max 2MB)</small>
                 </div>
             </div>
+            <div class="form-group full-width">
+    <label><i class="fas fa-images"></i> صور إضافية للمنتج</label>
+    <input type="file" name="additional_images[]" accept="image/*" multiple>
+    <small>يمكنك اختيار أكثر من صورة (اختياري)</small>
+</div>
 
             <hr>
 

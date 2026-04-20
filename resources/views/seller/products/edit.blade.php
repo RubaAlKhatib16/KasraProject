@@ -301,6 +301,9 @@
                         <span>الصورة الحالية موجودة</span>
                         <a href="{{ asset('storage/' . $product->featured_image) }}" target="_blank">(معاينة)</a>
                     </div>
+                    <div id="deleted-images-container">
+                        <input type="hidden" name="deleted_images" id="deleted_images" value="">
+                    </div>
                     @endif
                     <input type="file" name="featured_image" accept="image/*">
                     <small>اتركه فارغاً إذا لم ترغب في تغيير الصورة</small>
