@@ -46,6 +46,7 @@
             display: flex;
             gap: 1.5rem;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .nav-links a {
@@ -98,7 +99,6 @@
             }
 
             .nav-links {
-                flex-wrap: wrap;
                 justify-content: center;
             }
 
@@ -123,10 +123,11 @@
                     <i class="fas fa-shopping-cart"></i>
                     <span class="cart-count" id="cartCount">0</span>
                 </a>
+
+
                 <form method="POST" action="{{ route('logout') }}" style="display:inline;">
                     @csrf
-                    <button type="submit" style="background:none; border:none; color:#EDE9FE; cursor:pointer;">تسجيل
-                        الخروج</button>
+                    <button type="submit" style="background:none; border:none; color:#EDE9FE; cursor:pointer;">تسجيل الخروج</button>
                 </form>
             @else
                 <a href="{{ route('login') }}">تسجيل الدخول</a>
@@ -144,7 +145,6 @@
     </footer>
 
     <script>
-        // تحديث عدد السلة (سيتم استخدامه لاحقاً)
         function updateCartCount() {
             fetch('{{ route('cart.count') }}')
                 .then(res => res.json())
@@ -153,8 +153,6 @@
                 });
         }
         updateCartCount();
-
-        
     </script>
     @stack('scripts')
 </body>

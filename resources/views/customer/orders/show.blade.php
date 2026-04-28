@@ -387,6 +387,58 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .btn-pay-installment {
+            background: linear-gradient(105deg, #2ecc71, #27ae60);
+            border: none;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+
+        .btn-pay-installment:hover {
+            transform: scale(1.02);
+            background: #27ae60;
+        }
+
+        .status-badge {
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .status-paid {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .status-pending {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status-overdue {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .installment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(233, 179, 251, 0.2);
+        }
+
+        .installment-info {
+            display: flex;
+            gap: 1rem;
+        }
     </style>
 </head>
 
@@ -451,14 +503,17 @@
                     <p><strong>الإجمالي:</strong> {{ number_format($order->total_amount, 2) }} د.أ</p>
                     <p><strong>طريقة الدفع:</strong> كِسرة (تقسيط)</p>
                     <p><strong>عدد الأقساط:</strong>
-                        {{ $order->installment_plan > 0 ? $order->installment_plan . ' دفعات' : 'نقدي' }}</p>
+                        {{ $order->installment_plan > 0 ? $order->installment_plan . ' دفعات' : 'نقدي' }}
+                    </p>
                 </div>
                 <div class="detail-card">
                     <h3><i class="fas fa-credit-card"></i> معلومات الدفع</h3>
                     <p><strong>قيمة القسط:</strong>
-                        {{ $order->installment_amount ? number_format($order->installment_amount, 2) : '—' }} د.أ</p>
+                        {{ $order->installment_amount ? number_format($order->installment_amount, 2) : '—' }} د.أ
+                    </p>
                     <p><strong>تاريخ أول قسط:</strong>
-                        {{ $order->first_installment_date ? $order->first_installment_date->format('Y-m-d') : '—' }}</p>
+                        {{ $order->first_installment_date ? $order->first_installment_date->format('Y-m-d') : '—' }}
+                    </p>
                     <p><strong>العنوان:</strong> {{ $order->shipping_address }}</p>
                     <p><strong>الهاتف:</strong> {{ $order->phone ?? '—' }}</p>
                     @if($order->notes)
@@ -480,12 +535,12 @@
                         </thead>
                         <tbody>
                             @foreach($order->items as $item)
-                                <tr>
-                                    <td>{{ $item->product->name }}</td>
-                                    <td>{{ number_format($item->price, 2) }} د.أ</td>
-                                    <td>{{ $item->quantity }}</td>
-                                    <td>{{ number_format($item->price * $item->quantity, 2) }} د.أ</td>
-                                </tr>
+                            <tr>
+                                <td>{{ $item->product->name }}</td>
+                                <td>{{ number_format($item->price, 2) }} د.أ</td>
+                                <td>{{ $item->quantity }}</td>
+                                <td>{{ number_format($item->price * $item->quantity, 2) }} د.أ</td>
+                            </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -493,44 +548,53 @@
             </div>
 
             @if($order->installment_plan > 0)
-                @php
-                    $installments = \App\Models\Installment::where('order_id', $order->id)->orderBy('due_date')->get();
-                @endphp
-                @if($installments->count())
-                    <div class="installment-schedule">
-                        <h3><i class="fas fa-calendar-alt"></i> جدول الأقساط</h3>
-                        @foreach($installments as $inst)
-                            <div class="installment-item">
-                                <span>القسط {{ $loop->iteration }} - {{ $inst->due_date->format('Y-m-d') }}</span>
-                                <span>{{ number_format($inst->amount, 2) }} د.أ
-                                    @if($inst->status == 'paid')
-                                        <span class="status-badge status-paid" style="margin-right:0.5rem;">مدفوع</span>
-                                    @elseif($inst->status == 'overdue')
-                                        <span class="status-badge status-cancelled" style="margin-right:0.5rem;">متأخر</span>
-                                    @else
-                                        <span class="status-badge status-unpaid" style="margin-right:0.5rem;">معلق</span>
-                                    @endif
-                                </span>
-                            </div>
-                        @endforeach
+            @php
+            $installments = \App\Models\Installment::where('order_id', $order->id)->orderBy('due_date')->get();
+            @endphp
+            @if($installments->count())
+            <div class="installment-schedule">
+                <h3><i class="fas fa-calendar-alt"></i> جدول الأقساط</h3>
+                @foreach($installments as $inst)
+                <div class="installment-item">
+                    <div class="installment-info">
+                        <span>القسط {{ $loop->iteration }} - {{ \Carbon\Carbon::parse($inst->due_date)->format('Y-m-d') }}</span>
+                        <span>{{ number_format($inst->amount, 2) }} د.أ</span>
                     </div>
-                @endif
+                    <div class="installment-status">
+                        @if($inst->status == 'paid')
+                        <span class="status-badge status-paid"> مدفوع</span>
+                        @if($inst->paid_at)
+                        <small>({{ \Carbon\Carbon::parse($inst->paid_at)->format('Y-m-d') }})</small>
+                        @endif
+                        @elseif($inst->status == 'overdue')
+                        <span class="status-badge status-overdue"> متأخر</span>
+                        @else
+                        <span class="status-badge status-pending"> معلق</span>
+                        <form action="{{ route('installment.pay', $inst) }}" method="POST" style="display: inline-block; margin-right: 10px;">
+                            @csrf
+                            <button type="submit" class="btn-pay-installment"> دفع القسط</button>
+                        </form>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
             @endif
         </main>
-    </div>
 
-    <script>
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
-        if (menuToggle) {
-            menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
-            window.addEventListener('click', (e) => {
-                if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && sidebar.classList.contains('open')) {
-                    sidebar.classList.remove('open');
-                }
-            });
-        }
-    </script>
+        <script>
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+                window.addEventListener('click', (e) => {
+                    if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !menuToggle.contains(e.target) && sidebar.classList.contains('open')) {
+                        sidebar.classList.remove('open');
+                    }
+                });
+            }
+        </script>
 </body>
 
 </html>

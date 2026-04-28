@@ -8,6 +8,9 @@ use App\Models\Category;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+
 
 class ProductController extends Controller
 {
@@ -50,6 +53,7 @@ class ProductController extends Controller
             'is_active' => $request->has('is_active'),
             'category_id' => $request->category_id,
             'installments_count' => $request->installments_count ?? 0,
+            'slug' => Str::slug($request->name) . '-' . Str::random(5),
         ]);
 
         // حفظ الصور الإضافية

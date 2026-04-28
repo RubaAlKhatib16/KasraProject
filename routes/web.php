@@ -13,31 +13,30 @@ use App\Http\Controllers\Customer\DashboardController as CustomerDashboardContro
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\InstallmentController as CustomerInstallmentController;
+use App\Http\Controllers\Client\InstallmentController as ClientInstallmentController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
 // ===================== الصفحات العامة =====================
-
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/stores', [PublicController::class, 'stores'])->name('public.stores');
+// ✅ هذا لازم يكون أول
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/store/create', [StoreController::class, 'create'])->name('store.create');
+    Route::post('/store', [StoreController::class, 'store'])->name('store.store');
+});
+
+// ✅ هذا بعده
 Route::get('/store/{id}', [PublicController::class, 'storePage'])->name('public.store-page');
 Route::get('/how-it-works', [PublicController::class, 'howItWorks'])->name('public.how-it-works');
 Route::get('/business', [PublicController::class, 'business'])->name('public.business');
 Route::get('/user', [PublicController::class, 'user'])->name('public.user');
 Route::get('/help', [PublicController::class, 'help'])->name('public.help');
-// صفحات عامة إضافية (مؤقتة لحين إنشاء الـ views)
-Route::get('/how-it-works', function () {
-    return view('public.how-it-works');
-})->name('public.how-it-works');
-
-Route::get('/business', function () {
-    return view('public.business');
-})->name('public.business');
 
 // ===================== مسارات المصادقة (Breeze) =====================
 require __DIR__ . '/auth.php';
 
-// ===================== مسارات المستخدم العادي (بعد تسجيل الدخول - Breeze) =====================
+// ===================== مسارات المستخدم العادي (بعد تسجيل الدخول) =====================
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
@@ -47,17 +46,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // إنشاء متجر (للمستخدم العادي الذي يريد أن يصبح بائعاً)
+    // إنشاء متجر
     Route::get('/store/create', [StoreController::class, 'create'])->name('store.create');
     Route::post('/store', [StoreController::class, 'store'])->name('store.store');
 });
 
-// ===================== مسارات العميل (العامة - عرض المنتجات والمتاجر) =====================
+// ===================== مسارات العميل (العامة – متاحة للجميع) =====================
 Route::get('/products', [ClientProductController::class, 'index'])->name('client.products.index');
 Route::get('/products/{slug}', [ClientProductController::class, 'show'])->name('client.products.show');
 Route::get('/store/{store}', [StoreController::class, 'show'])->name('client.stores.show');
 
-// ===================== مسارات السلة (للجميع، تتضمن عمليات داخلية) =====================
+// ===================== مسارات السلة (متاحة للجميع) =====================
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
 Route::patch('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
@@ -68,6 +67,9 @@ Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
 Route::middleware(['auth'])->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+
+    Route::post('/installment/{installment}/pay', [ClientInstallmentController::class, 'pay'])
+        ->name('installment.pay');
 });
 
 // ===================== مسارات العميل (خاصة بعد تسجيل الدخول) =====================
@@ -78,9 +80,6 @@ Route::middleware(['auth'])->prefix('customer')->name('customer.')->group(functi
     Route::get('/profile', [CustomerProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [CustomerProfileController::class, 'update'])->name('profile.update');
     Route::get('/installments', [CustomerInstallmentController::class, 'index'])->name('installments.index');
-    Route::get('/profile', [CustomerProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [CustomerProfileController::class, 'update'])->name('profile.update');
-    
 });
 
 // ===================== مسارات البائع (Seller) =====================
@@ -96,6 +95,3 @@ Route::middleware(['auth', 'seller'])->prefix('seller')->name('seller.')->group(
     Route::get('/profile', [SellerProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [SellerProfileController::class, 'update'])->name('profile.update');
 });
-
-
-
