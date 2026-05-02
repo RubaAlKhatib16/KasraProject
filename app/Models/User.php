@@ -41,6 +41,7 @@ protected $fillable = [
     'dob',
     'gender',
     'marketing',
+    'is_blocked', 
 ];
 public function store()
 {
