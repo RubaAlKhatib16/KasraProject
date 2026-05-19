@@ -49,6 +49,6 @@ class StoreController extends Controller
         $products = Product::where('store_id', $store->id)
             ->where('is_active', true)
             ->paginate(12);
-        return view('client.stores.show', compact('store', 'products'));
+        return view('public.store-page', compact('store', 'products'));
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Installment;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,6 @@ class CheckoutController extends Controller
         $this->middleware('auth');
     }
 
-    // عرض صفحة الدفع مع السلة
     public function index()
     {
         $cart = session()->get('cart', []);
@@ -35,7 +35,6 @@ class CheckoutController extends Controller
         return view('client.checkout.index', compact('cart', 'total'));
     }
 
-    // معالجة إرسال نموذج الدفع (محاكاة)
     public function store(Request $request)
     {
         $cart = session()->get('cart', []);
@@ -43,8 +42,8 @@ class CheckoutController extends Controller
             return redirect()->route('cart.index')->with('error', 'السلة فارغة');
         }
 
-        // التحقق من صحة المدخلات
-        $request->validate([
+        // ===== Validation =====
+        $rules = [
             'name'             => 'required|string|max:255',
             'email'            => 'required|email',
             'shipping_address' => 'required|string',
@@ -53,6 +52,21 @@ class CheckoutController extends Controller
             'payment_method'   => 'required|in:cash,card,installment',
             'notes'            => 'nullable|string',
             'id_card_image'    => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ];
+
+        // حقول الفيزا مطلوبة فقط لو الدفع بالبطاقة أو التقسيط
+        if (in_array($request->payment_method, ['card', 'installment'])) {
+            $rules['card_number'] = 'required|string';
+            $rules['card_holder'] = 'required|string|max:100';
+            $rules['card_expiry'] = 'required|string';
+            $rules['card_cvv']    = 'required|string|min:3|max:4';
+        }
+
+        $request->validate($rules, [
+            'card_number.required' => 'رقم البطاقة مطلوب',
+            'card_holder.required' => 'اسم حامل البطاقة مطلوب',
+            'card_expiry.required' => 'تاريخ الانتهاء مطلوب',
+            'card_cvv.required'    => 'رمز CVV مطلوب',
         ]);
 
         $user = Auth::user();
@@ -63,22 +77,30 @@ class CheckoutController extends Controller
             $total += $item['price'] * $item['quantity'];
         }
 
-        // رفع صورة البطاقة (إن وجدت)
+        // رفع صورة البطاقة الشخصية
         $idCardPath = null;
         if ($request->hasFile('id_card_image')) {
             $idCardPath = $request->file('id_card_image')->store('id_cards', 'public');
         }
 
-        // خطة التقسيط (نأخذها من أول منتج في السلة، أو يمكن تطويرها لتكون موحدة لكل المنتجات)
-        $firstItem = reset($cart);
+        $firstItem       = reset($cart);
         $installmentPlan = $firstItem['installment_plan'] ?? 0;
 
-        // ----- إنشاء الطلب -----
+        // ===== تحديد حالة الطلب حسب طريقة الدفع =====
+        // cash       → pending  (ينتظر التوصيل)
+        // card       → processing (محاكاة: اعتبرنا الدفع نجح فوراً)
+        // installment→ processing (محاكاة: القسط الأول دُفع)
+        $status = match($request->payment_method) {
+            'card', 'installment' => 'processing',
+            default               => 'pending',
+        };
+
+        // ===== إنشاء الطلب =====
         $order = Order::create([
             'user_id'             => $user->id,
             'order_number'        => 'ORD-' . strtoupper(Str::random(10)),
             'total_amount'        => $total,
-            'status'              => 'pending', // الطلب مؤكد فوراً في المحاكاة
+            'status'              => $status,
             'shipping_address'    => $request->shipping_address,
             'phone'               => $request->phone,
             'notes'               => $request->notes,
@@ -90,7 +112,7 @@ class CheckoutController extends Controller
             'customer_email'      => $request->email,
         ]);
 
-        // ----- إضافة عناصر الطلب -----
+        // ===== عناصر الطلب + خصم المخزون =====
         foreach ($cart as $id => $item) {
             OrderItem::create([
                 'order_id'   => $order->id,
@@ -98,43 +120,53 @@ class CheckoutController extends Controller
                 'quantity'   => $item['quantity'],
                 'price'      => $item['price'],
             ]);
+
+            Product::where('id', $id)
+                ->where('stock', '>', 0)
+                ->decrement('stock', $item['quantity']);
         }
 
-        // ----- معالجة الأقساط (محاكاة) -----
-        if ($installmentPlan > 0) {
-            $installmentAmount = $total / $installmentPlan; // قيمة القسط الواحد
+        // ===== معالجة الأقساط (لو الدفع تقسيط) =====
+        if ($installmentPlan > 0 && $request->payment_method === 'installment') {
+            $installmentAmount = $total / $installmentPlan;
 
-            // ✅ القسط الأول: مدفوع تلقائياً (محاكاة)
+            // القسط الأول — محاكاة: مدفوع فوراً بالبطاقة
             Installment::create([
-                'order_id'  => $order->id,
-                'user_id'   => $user->id,
-                'amount'    => $installmentAmount,
-                'due_date'  => now(),               // تاريخ الاستحقاق = اليوم
-                'status'    => 'paid',              // تم دفعه
-                'paid_at'   => now(),
+                'order_id' => $order->id,
+                'user_id'  => $user->id,
+                'amount'   => $installmentAmount,
+                'due_date' => now(),
+                'status'   => 'paid',
+                'paid_at'  => now(),
             ]);
 
-            // ✅ الأقساط المتبقية (pending)
+            // باقي الأقساط
             for ($i = 2; $i <= $installmentPlan; $i++) {
                 Installment::create([
-                    'order_id'  => $order->id,
-                    'user_id'   => $user->id,
-                    'amount'    => $installmentAmount,
-                    'due_date'  => now()->addMonths($i - 1),
-                    'status'    => 'pending',
+                    'order_id' => $order->id,
+                    'user_id'  => $user->id,
+                    'amount'   => $installmentAmount,
+                    'due_date' => now()->addMonths($i - 1),
+                    'status'   => 'pending',
                 ]);
             }
 
-            // تحديث حقل القسط في جدول الطلب (اختياري)
-            $order->installment_amount = $installmentAmount;
-            $order->first_installment_date = now()->addMonth(); // أول قسط قادم
+            $order->installment_amount     = $installmentAmount;
+            $order->first_installment_date = now()->addMonth();
             $order->save();
         }
 
-        // تفريغ السلة بعد إتمام العملية
+        // تفريغ السلة
         session()->forget('cart');
 
+        // ===== رسالة النجاح حسب طريقة الدفع =====
+        $successMessage = match($request->payment_method) {
+            'card'        => 'تم الدفع بالبطاقة بنجاح! طلبك قيد المعالجة.',
+            'installment' => 'تم تأكيد التقسيط! دُفع القسط الأول بالبطاقة، وسيُخصم باقي الأقساط شهرياً.',
+            default       => 'تم تأكيد طلبك! سيُجمع المبلغ عند التوصيل.',
+        };
+
         return redirect()->route('customer.orders.show', $order->id)
-            ->with('success', 'تم تأكيد طلبك بنجاح (تم دفع القسط الأول تلقائياً في نظام المحاكاة).');
+            ->with('success', $successMessage);
     }
 }

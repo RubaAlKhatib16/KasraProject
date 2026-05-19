@@ -10,7 +10,6 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* كل الـ CSS الأصلي موجود هنا (نفس ما كان لديكِ) - اختصاراً سأكتب الجزء المعدل فقط، لكن استخدمي الـ CSS الموجود لديكِ */
         * {
             margin: 0;
             padding: 0;
@@ -229,8 +228,7 @@
             text-align: right;
         }
 
-        th,
-        td {
+        th, td {
             padding: 1rem 0.5rem;
             border-bottom: 1px solid rgba(233, 179, 251, 0.2);
         }
@@ -253,25 +251,10 @@
             font-weight: 600;
         }
 
-        .status-completed {
-            background: rgba(46, 125, 50, 0.2);
-            color: #A5D6A7;
-        }
-
-        .status-pending {
-            background: rgba(237, 108, 2, 0.2);
-            color: #FFB74D;
-        }
-
-        .status-processing {
-            background: rgba(33, 150, 243, 0.2);
-            color: #90CAF9;
-        }
-
-        .status-cancelled {
-            background: rgba(244, 67, 54, 0.2);
-            color: #FFCDD2;
-        }
+        .status-completed  { background: rgba(46, 125, 50, 0.2);   color: #A5D6A7; }
+        .status-pending    { background: rgba(237, 108, 2, 0.2);   color: #FFB74D; }
+        .status-processing { background: rgba(33, 150, 243, 0.2);  color: #90CAF9; }
+        .status-cancelled  { background: rgba(244, 67, 54, 0.2);   color: #FFCDD2; }
 
         .btn-view {
             background: rgba(255, 255, 255, 0.05);
@@ -311,6 +294,115 @@
             font-size: 1.2rem;
         }
 
+        /* =====================================================
+           MINI TIMELINE — المضاف الوحيد
+           ===================================================== */
+        .mini-timeline-cell {
+            min-width: 180px;
+        }
+
+        .mini-timeline {
+            position: relative;
+            padding-top: 6px;
+        }
+
+        .mini-track {
+            position: absolute;
+            top: 21px;
+            right: 10px;
+            left: 10px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 99px;
+            z-index: 0;
+        }
+
+        .mini-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF4F8B, #E9B3FB);
+            border-radius: 99px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mini-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+        }
+
+        .mini-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mini-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .mini-step.done .mini-icon {
+            background: linear-gradient(135deg, #FF4F8B, #E6497D);
+            color: #fff;
+        }
+
+        .mini-step.active .mini-icon {
+            background: linear-gradient(135deg, #E9B3FB, #C084FC);
+            color: #1e0a2e;
+        }
+
+        .mini-step.waiting .mini-icon {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mini-pulse {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(233, 179, 251, 0.5);
+            animation: miniPulse 1.8s ease-out infinite;
+        }
+
+        @keyframes miniPulse {
+            0%   { transform: scale(1);   opacity: 0.8; }
+            100% { transform: scale(1.7); opacity: 0; }
+        }
+
+        .mini-label {
+            font-size: 0.55rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .mini-step.done .mini-label   { color: #FFB3C7; }
+        .mini-step.active .mini-label { color: #E9B3FB; }
+        .mini-step.waiting .mini-label { color: rgba(255,255,255,0.2); }
+
+        .cancelled-mini-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 40px;
+            padding: 0.25rem 0.7rem;
+            color: #FCA5A5;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        /* ===================================================== */
+
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -320,22 +412,10 @@
                 background: rgba(31, 41, 55, 0.95);
                 transition: right 0.3s;
             }
-
-            .sidebar.open {
-                right: 0;
-            }
-
-            .menu-toggle {
-                display: block;
-            }
-
-            .main-content {
-                padding: 1rem;
-            }
-
-            .search-bar {
-                flex-direction: column;
-            }
+            .sidebar.open { right: 0; }
+            .menu-toggle  { display: block; }
+            .main-content { padding: 1rem; }
+            .search-bar   { flex-direction: column; }
         }
     </style>
 </head>
@@ -345,17 +425,18 @@
     <div class="dashboard">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo">
-                <div class="logo-icon"><i class="fas fa-bolt"></i></div><span class="logo-text">كِسرة</span>
+                <div class="logo-icon"><i class="fas fa-bolt"></i></div>
+                <span class="logo-text">كِسرة</span>
             </div>
             <nav class="sidebar-nav">
                 <a href="{{ route('customer.dashboard') }}" class="nav-item"><i class="fas fa-home"></i> الرئيسية</a>
                 <a href="{{ route('customer.profile.edit') }}" class="nav-item"><i class="fas fa-user"></i> حسابي</a>
-                <a href="{{ route('customer.orders.index') }}" class="nav-item active"><i
-                        class="fas fa-shopping-bag"></i> طلباتي</a>
-                <a href="{{ route('customer.installments.index') }}" class="nav-item"><i
-                        class="fas fa-calendar-alt"></i> أقساطي</a>
-                <form method="POST" action="{{ route('logout') }}" style="margin-top:auto;">@csrf<button type="submit"
-                        class="nav-item logout"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button></form>
+                <a href="{{ route('customer.orders.index') }}" class="nav-item active"><i class="fas fa-shopping-bag"></i> طلباتي</a>
+                <a href="{{ route('customer.installments.index') }}" class="nav-item"><i class="fas fa-calendar-alt"></i> أقساطي</a>
+                <form method="POST" action="{{ route('logout') }}" style="margin-top:auto;">
+                    @csrf
+                    <button type="submit" class="nav-item logout"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+                </form>
             </nav>
         </aside>
 
@@ -367,7 +448,8 @@
                 </div>
                 <div class="user-menu">
                     <div class="user-avatar">{{ substr(auth()->user()->name, 0, 1) }}</div>
-                    <div class="user-name">{{ auth()->user()->name }}</div><i class="fas fa-chevron-down"></i>
+                    <div class="user-name">{{ auth()->user()->name }}</div>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
             </div>
 
@@ -377,8 +459,9 @@
                 <select id="statusFilter" class="filter-select">
                     <option value="all">جميع الحالات</option>
                     <option value="completed">مكتمل</option>
-                    <option value="pending">قيد المعالجة</option>
+                    <option value="pending">قيد الانتظار</option>
                     <option value="processing">قيد المعالجة</option>
+                    <option value="shipped">في الطريق</option>
                     <option value="cancelled">ملغي</option>
                 </select>
             </div>
@@ -392,35 +475,96 @@
                                 <th>رقم الطلب</th>
                                 <th>المنتج</th>
                                 <th>المتجر</th>
+                                <th>تتبع الطلب</th>
                                 <th>الحالة</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="ordersTableBody">
                             @forelse($orders as $order)
-                                <tr>
-                                    <td>#{{ $order->order_number }}</td>
-                                    <td>{{ $order->items->first()->product->name ?? '—' }}</td>
-                                    <td>{{ $order->items->first()->product->store->name ?? '—' }}</td>
-                                    <td>
-                                        <span class="status-badge 
-                                        @if($order->status == 'completed') status-completed
+                            @php
+                                $statusMap   = ['pending' => 0, 'processing' => 1, 'shipped' => 2, 'delivered' => 3, 'completed' => 3];
+                                $currentIdx  = $statusMap[$order->status] ?? -1;
+                                $cancelled   = $order->status === 'cancelled';
+
+                                $miniSteps = [
+                                    ['icon' => 'fas fa-clock',         'label' => 'انتظار'],
+                                    ['icon' => 'fas fa-box-open',      'label' => 'تجهيز'],
+                                    ['icon' => 'fas fa-shipping-fast', 'label' => 'شحن'],
+                                    ['icon' => 'fas fa-check-circle',  'label' => 'تسليم'],
+                                ];
+                                $fillPct = $currentIdx >= 0
+                                    ? ($currentIdx / (count($miniSteps) - 1)) * 100
+                                    : 0;
+                            @endphp
+                            <tr data-status="{{ $order->status }}">
+                                <td>#{{ $order->order_number }}</td>
+                                <td>{{ $order->items->first()->product->name ?? '—' }}</td>
+                                <td>{{ $order->items->first()->product->store->name ?? '—' }}</td>
+
+                                {{-- ===== MINI TIMELINE ===== --}}
+                                <td class="mini-timeline-cell">
+                                    @if($cancelled)
+                                        <span class="cancelled-mini-badge">
+                                            <i class="fas fa-ban"></i> ملغى
+                                        </span>
+                                    @else
+                                        <div class="mini-timeline">
+                                            <div class="mini-track">
+                                                <div class="mini-fill" style="width: {{ $fillPct }}%"></div>
+                                            </div>
+                                            <div class="mini-steps">
+                                                @foreach($miniSteps as $i => $step)
+                                                @php
+                                                    $cls = $i < $currentIdx ? 'done' : ($i === $currentIdx ? 'active' : 'waiting');
+                                                @endphp
+                                                <div class="mini-step {{ $cls }}">
+                                                    <div class="mini-icon">
+                                                        @if($i < $currentIdx)
+                                                            <i class="fas fa-check"></i>
+                                                        @else
+                                                            <i class="{{ $step['icon'] }}"></i>
+                                                        @endif
+                                                        @if($i === $currentIdx)
+                                                            <span class="mini-pulse"></span>
+                                                        @endif
+                                                    </div>
+                                                    <span class="mini-label">{{ $step['label'] }}</span>
+                                                </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                </td>
+                                {{-- ========================= --}}
+
+                                <td>
+                                    <span class="status-badge
+                                        @if($order->status == 'completed' || $order->status == 'delivered') status-completed
                                         @elseif($order->status == 'processing') status-processing
+                                        @elseif($order->status == 'shipped') status-processing
                                         @elseif($order->status == 'cancelled') status-cancelled
                                         @else status-pending @endif">
-                                            {{ $order->status == 'completed' ? 'مكتمل' : ($order->status == 'processing' ? 'قيد المعالجة' : ($order->status == 'cancelled' ? 'ملغي' : 'قيد الانتظار')) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('customer.orders.show', $order) }}" class="btn-view">
-                                            <i class="fas fa-eye"></i> عرض
-                                        </a>
-                                    </td>
-                                </tr>
+                                        @switch($order->status)
+                                            @case('completed')  مكتمل          @break
+                                            @case('delivered')  تم التسليم     @break
+                                            @case('processing') قيد التجهيز   @break
+                                            @case('shipped')    في الطريق     @break
+                                            @case('cancelled')  ملغي           @break
+                                            @default            قيد الانتظار
+                                        @endswitch
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('customer.orders.show', $order) }}" class="btn-view">
+                                        <i class="fas fa-eye"></i> عرض
+                                    </a>
+                                </td>
+                            </tr>
                             @empty
-                                <tr>
-                                    <td colspan="5" style="text-align:center;">لا توجد طلبات حتى الآن</td>
-                                </tr>
+                            <tr>
+                                <td colspan="6" style="text-align:center;">لا توجد طلبات حتى الآن</td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -435,7 +579,7 @@
     <script>
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
+        const sidebar    = document.getElementById('sidebar');
         if (menuToggle) {
             menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
             window.addEventListener('click', (e) => {
@@ -445,25 +589,21 @@
             });
         }
 
-        // Search and filter functionality (client-side for simplicity)
+        // Search and filter
         const searchInput = document.getElementById('searchInput');
         const statusFilter = document.getElementById('statusFilter');
-        const tableRows = document.querySelectorAll('#ordersTableBody tr');
+        const tableRows   = document.querySelectorAll('#ordersTableBody tr');
 
         function filterOrders() {
-            const searchTerm = searchInput.value.toLowerCase();
+            const searchTerm  = searchInput.value.toLowerCase();
             const statusValue = statusFilter.value;
             tableRows.forEach(row => {
                 const orderNumber = row.cells[0]?.textContent.toLowerCase() || '';
                 const productName = row.cells[1]?.textContent.toLowerCase() || '';
-                const storeName = row.cells[2]?.textContent.toLowerCase() || '';
-                const status = row.cells[3]?.textContent.trim().toLowerCase() || '';
-                let statusMatch = false;
-                if (statusValue === 'all') statusMatch = true;
-                else if (statusValue === 'completed' && status === 'مكتمل') statusMatch = true;
-                else if (statusValue === 'pending' && (status === 'قيد المعالجة' || status === 'قيد الانتظار')) statusMatch = true;
-                else if (statusValue === 'processing' && status === 'قيد المعالجة') statusMatch = true;
-                else if (statusValue === 'cancelled' && status === 'ملغي') statusMatch = true;
+                const storeName   = row.cells[2]?.textContent.toLowerCase() || '';
+                const rowStatus   = row.dataset.status || '';
+
+                const statusMatch = statusValue === 'all' || rowStatus === statusValue;
                 const searchMatch = orderNumber.includes(searchTerm) || productName.includes(searchTerm) || storeName.includes(searchTerm);
                 row.style.display = (searchMatch && statusMatch) ? '' : 'none';
             });

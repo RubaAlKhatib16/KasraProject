@@ -931,7 +931,7 @@
         productCards.forEach(card => {
             card.addEventListener('click', () => {
                 const productName = card.querySelector('.product-title')?.innerText || 'المنتج';
-                alert(`تم إضافة ${productName} إلى سلة المشتريات\nيمكنك إكمال الدفع باستخدام كِسرة`);
+               
             });
         });
 

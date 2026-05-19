@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'store_id',
         'name',
@@ -17,7 +20,8 @@ class Product extends Model
         'images',
         'is_active',
         'category_id',
-        'installments_count'  // الجديد
+        'installments_count',   // ✅ مضاف
+        'low_stock_threshold',  // ✅ مضاف
     ];
 
     public function category()
@@ -26,21 +30,22 @@ class Product extends Model
     }
 
     public function orderItems()
-{
-    return $this->hasMany(OrderItem::class);
-}
-public function store()
-{
-    return $this->belongsTo(Store::class);
-}
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
-public function images()
-{
-    return $this->hasMany(ProductImage::class)->orderBy('order');
-}
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 
-public function getGalleryImagesAttribute()
-{
-    return $this->images->pluck('image_path')->toArray();
-}
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('order');
+    }
+
+    public function getGalleryImagesAttribute()
+    {
+        return $this->images->pluck('image_path')->toArray();
+    }
 }

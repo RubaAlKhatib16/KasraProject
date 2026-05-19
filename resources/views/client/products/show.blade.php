@@ -5,36 +5,32 @@
 @section('content')
 <div class="product-detail-page">
     <div class="container">
-        <!-- القسم الرئيسي للمنتج -->
         <div class="product-main-grid">
+
             <!-- عمود معرض الصور -->
             <div class="product-gallery">
-                <!-- الصورة الرئيسية الكبيرة -->
                 <div class="main-image-container">
-                    <img id="mainProductImage" src="{{ asset('storage/' . ($product->featured_image ?? 'default.jpg')) }}" alt="{{ $product->name }}" class="main-product-image">
+                    <img id="mainProductImage"
+                         src="{{ asset('storage/' . ($product->featured_image ?? 'default.jpg')) }}"
+                         alt="{{ $product->name }}"
+                         class="main-product-image">
                 </div>
 
-                <!-- الصور المصغرة (Thumbnails) - تظهر هنا صور متعددة -->
                 <div class="thumbnail-list">
                     @php
-                        // هنا يمكنك إضافة صور متعددة. مثال: استخدام حقل 'images' إذا كان موجوداً في قاعدة البيانات
-                        // أو يمكنك تمرير مصفوفة من الصور من الكونترولر. هذا مجرد مثال توضيحي.
                         $additionalImages = [];
-                        if(property_exists($product, 'images') && is_array($product->images)) {
-                            $additionalImages = $product->images;
+                        if ($product->relationLoaded('images') && $product->images->count()) {
+                            $additionalImages = $product->images->pluck('image_path')->toArray();
                         } else {
-                            // صورة تجريبية إضافية - يمكنك إزالتها
-                            $additionalImages = [
-                                'storage/' . ($product->featured_image ?? 'default.jpg'),
-                                'storage/' . ($product->featured_image ?? 'default.jpg')
-                            ];
+                            $additionalImages = ['products/' . basename($product->featured_image ?? 'default.jpg')];
                         }
                     @endphp
 
                     @foreach($additionalImages as $index => $imgPath)
-                    <div class="thumbnail-item {{ $index == 0 ? 'active' : '' }}" data-image="{{ asset($imgPath) }}">
-                        <img src="{{ asset($imgPath) }}" alt="صورة المنتج {{ $index + 1 }}">
-                    </div>
+                        <div class="thumbnail-item {{ $index == 0 ? 'active' : '' }}"
+                             data-image="{{ asset('storage/' . $imgPath) }}">
+                            <img src="{{ asset('storage/' . $imgPath) }}" alt="صورة المنتج {{ $index + 1 }}">
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -44,11 +40,16 @@
                 <h1 class="product-title">{{ $product->name }}</h1>
 
                 <div class="product-price-section">
-                    <div class="current-price">{{ number_format($product->price, 2) }} <span class="currency">د.أ</span></div>
-                    @if($product->installments_count > 0)
+                    <div class="current-price">
+                        {{ number_format($product->price, 2) }}
+                        <span class="currency">د.أ</span>
+                    </div>
+
+                    @if($product->installments_count > 1)
                         <div class="installment-badge-detail">
                             <i class="fas fa-calendar-alt"></i>
-                            أو ادفع على {{ $product->installments_count }} دفعات شهرية بقيمة {{ number_format($product->price / $product->installments_count, 2) }} د.أ/شهر
+                            أو قسّطها على {{ $product->installments_count }} دفعة شهرية بقيمة
+                            {{ number_format($product->price / $product->installments_count, 2) }} د.أ/شهر
                         </div>
                     @endif
                 </div>
@@ -65,20 +66,30 @@
                     </div>
                     <div class="meta-item">
                         <i class="fas fa-box"></i>
-                        <span>حالة التوفر: <strong class="in-stock">متوفر في المخزون</strong></span>
+                        @if($product->stock > 0)
+                            <span>حالة التوفر: <strong class="in-stock">متوفر ({{ $product->stock }} قطعة)</strong></span>
+                        @else
+                            <span>حالة التوفر: <strong style="color:#FCA5A5">نفد من المخزون</strong></span>
+                        @endif
                     </div>
                 </div>
 
-                @if($product->installments_count > 0)
-                <div class="installment-plans">
-                    <label for="installment_plan">اختر خطة الدفع المناسبة لك:</label>
-                    <select id="installment_plan" class="installment-select">
-                        <option value="0">دفع نقدي (مرة واحدة)</option>
-                        @for($i = 3; $i <= $product->installments_count; $i+=3)
-                            <option value="{{ $i }}">{{ $i }} دفعات شهرية ({{ number_format($product->price / $i, 2) }} د.أ/شهر)</option>
-                        @endfor
-                    </select>
-                </div>
+                {{-- ===== خطة التقسيط =====
+                     نعرض خيارات من 2 دفعة حتى العدد الذي حدده التاجر بالضبط
+                     بدلاً من الخطوة 3 التي كانت تتخطى أرقاماً كثيرة --}}
+                @if($product->installments_count > 1)
+                    <div class="installment-plans">
+                        <label for="installment_plan">اختر خطة الدفع المناسبة لك:</label>
+                        <select id="installment_plan" class="installment-select">
+                            <option value="0">دفع كامل مرة واحدة — {{ number_format($product->price, 2) }} د.أ</option>
+                            @for($i = 2; $i <= $product->installments_count; $i++)
+                                <option value="{{ $i }}">
+                                    {{ $i }} دفعات شهرية —
+                                    {{ number_format($product->price / $i, 2) }} د.أ/شهر
+                                </option>
+                            @endfor
+                        </select>
+                    </div>
                 @endif
 
                 <!-- نموذج إضافة إلى السلة -->
@@ -86,14 +97,19 @@
                     @csrf
                     <div class="quantity-selector">
                         <label for="quantity">الكمية:</label>
-                        <input type="number" name="quantity" id="quantity" value="1" min="1">
+                        <input type="number" name="quantity" id="quantity"
+                               value="1" min="1"
+                               max="{{ $product->stock > 0 ? $product->stock : 1 }}">
                     </div>
                     <input type="hidden" name="installment_plan" id="installment_plan_input" value="0">
-                    <button type="submit" class="btn-add-to-cart">
-                        <i class="fas fa-shopping-cart"></i> أضف إلى السلة
+                    <button type="submit" class="btn-add-to-cart"
+                            {{ $product->stock <= 0 ? 'disabled' : '' }}>
+                        <i class="fas fa-shopping-cart"></i>
+                        {{ $product->stock > 0 ? 'أضف إلى السلة' : 'نفد من المخزون' }}
                     </button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
@@ -101,7 +117,6 @@
 
 @push('styles')
 <style>
-/* استايلات صفحة تفاصيل المنتج - متوافقة مع علامة كِسرة */
 .product-detail-page {
     padding: 2rem 0;
     min-height: calc(100vh - 200px);
@@ -113,7 +128,6 @@
     padding: 0 1.5rem;
 }
 
-/* شبكة التوزيع */
 .product-main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -125,7 +139,6 @@
     border: 1px solid rgba(233, 179, 251, 0.25);
 }
 
-/* معرض الصور */
 .product-gallery {
     display: flex;
     flex-direction: column;
@@ -167,30 +180,16 @@
     background: rgba(0, 0, 0, 0.2);
 }
 
-.thumbnail-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+.thumbnail-item img { width: 100%; height: 100%; object-fit: cover; }
 
 .thumbnail-item.active {
     border-color: #FF4F8B;
     box-shadow: 0 0 0 2px rgba(255, 79, 139, 0.3);
 }
 
-/* معلومات المنتج */
-.product-info {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
+.product-info { display: flex; flex-direction: column; gap: 1.5rem; }
 
-.product-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: white;
-    margin-bottom: 0.5rem;
-}
+.product-title { font-size: 2rem; font-weight: 800; color: white; margin-bottom: 0.5rem; }
 
 .product-price-section {
     background: rgba(255, 79, 139, 0.1);
@@ -199,17 +198,8 @@
     border-right: 4px solid #FF4F8B;
 }
 
-.current-price {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #FFB3C7;
-}
-
-.currency {
-    font-size: 1rem;
-    font-weight: normal;
-    color: #94A3B8;
-}
+.current-price { font-size: 2rem; font-weight: 800; color: #FFB3C7; }
+.currency { font-size: 1rem; font-weight: normal; color: #94A3B8; }
 
 .installment-badge-detail {
     margin-top: 0.5rem;
@@ -221,17 +211,8 @@
     display: inline-block;
 }
 
-.product-description {
-    color: #CBD5E1;
-    line-height: 1.6;
-}
-
-.section-subtitle {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 0.5rem;
-}
+.product-description { color: #CBD5E1; line-height: 1.6; }
+.section-subtitle { font-size: 1.1rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
 
 .product-meta-info {
     display: flex;
@@ -242,38 +223,16 @@
     border-bottom: 1px solid rgba(233, 179, 251, 0.2);
 }
 
-.meta-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #94A3B8;
-    font-size: 0.9rem;
-}
+.meta-item { display: flex; align-items: center; gap: 0.5rem; color: #94A3B8; font-size: 0.9rem; }
+.meta-item i { color: #FFB3C7; width: 20px; }
+.in-stock { color: #A5D6A7; }
 
-.meta-item i {
-    color: #FFB3C7;
-    width: 20px;
-}
-
-.in-stock {
-    color: #A5D6A7;
-}
-
-/* خيارات التقسيط */
-.installment-plans {
-    margin: 0.5rem 0;
-}
-
-.installment-plans label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: white;
-    font-weight: 500;
-}
+.installment-plans { margin: 0.5rem 0; }
+.installment-plans label { display: block; margin-bottom: 0.5rem; color: white; font-weight: 500; }
 
 .installment-select {
     width: 100%;
-    max-width: 300px;
+    max-width: 340px;
     padding: 0.8rem 1rem;
     border-radius: 60px;
     background: rgba(0, 0, 0, 0.5);
@@ -281,21 +240,11 @@
     color: white;
     font-family: inherit;
     cursor: pointer;
+    font-size: 0.9rem;
 }
 
-/* الكمية وزر الإضافة */
-.quantity-selector {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.quantity-selector label {
-    color: white;
-    font-weight: 500;
-}
-
+.quantity-selector { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; }
+.quantity-selector label { color: white; font-weight: 500; }
 .quantity-selector input {
     width: 80px;
     padding: 0.6rem;
@@ -325,77 +274,59 @@
     box-shadow: 0 12px 25px -8px rgba(255, 79, 139, 0.4);
 }
 
-.btn-add-to-cart:hover {
+.btn-add-to-cart:hover:not(:disabled) {
     transform: translateY(-2px);
     background: linear-gradient(105deg, #ff3f79, #FF4F8B);
     box-shadow: 0 20px 30px -12px rgba(255, 79, 139, 0.6);
 }
 
-/* استجابة للشاشات الصغيرة */
+.btn-add-to-cart:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(100, 100, 100, 0.4);
+    box-shadow: none;
+}
+
 @media (max-width: 900px) {
-    .product-main-grid {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-    }
-
-    .product-title {
-        font-size: 1.6rem;
-    }
-
-    .current-price {
-        font-size: 1.5rem;
-    }
+    .product-main-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .product-title { font-size: 1.6rem; }
+    .current-price { font-size: 1.5rem; }
 }
 
 @media (max-width: 640px) {
-    .product-detail-page {
-        padding: 1rem 0;
-    }
-
-    .product-main-grid {
-        padding: 1rem;
-    }
-
-    .thumbnail-item {
-        width: 60px;
-        height: 60px;
-    }
+    .product-detail-page { padding: 1rem 0; }
+    .product-main-grid { padding: 1rem; }
+    .thumbnail-item { width: 60px; height: 60px; }
 }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    // معرض الصور المتعددة: تغيير الصورة الرئيسية عند النقر على الصورة المصغرة
-    document.addEventListener('DOMContentLoaded', function() {
-        const thumbnails = document.querySelectorAll('.thumbnail-item');
-        const mainImage = document.getElementById('mainProductImage');
+document.addEventListener('DOMContentLoaded', function () {
 
-        if (thumbnails.length > 0) {
-            thumbnails.forEach(thumb => {
-                thumb.addEventListener('click', function() {
-                    // إزالة التحديد النشط من جميع الصور المصغرة
-                    thumbnails.forEach(t => t.classList.remove('active'));
-                    // إضافة التحديد النشط للصورة الحالية
-                    this.classList.add('active');
+    // معرض الصور
+    const thumbnails = document.querySelectorAll('.thumbnail-item');
+    const mainImage  = document.getElementById('mainProductImage');
 
-                    // تغيير الصورة الرئيسية
-                    const newImageSrc = this.getAttribute('data-image');
-                    if (newImageSrc) {
-                        mainImage.src = newImageSrc;
-                    }
-                });
-            });
-        }
-
-        // التعامل مع خطة التقسيط
-        const select = document.getElementById('installment_plan');
-        const hiddenInput = document.getElementById('installment_plan_input');
-        if (select && hiddenInput) {
-            select.addEventListener('change', function() {
-                hiddenInput.value = this.value;
-            });
-        }
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function () {
+            thumbnails.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            const src = this.getAttribute('data-image');
+            if (src) mainImage.src = src;
+        });
     });
+
+    // ربط الـ select بالـ hidden input عشان يتبعث مع الفورم
+    const select      = document.getElementById('installment_plan');
+    const hiddenInput = document.getElementById('installment_plan_input');
+
+    if (select && hiddenInput) {
+        select.addEventListener('change', function () {
+            hiddenInput.value = this.value;
+        });
+    }
+});
 </script>
 @endpush
