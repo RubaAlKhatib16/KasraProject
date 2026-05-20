@@ -823,9 +823,10 @@
                             <span class="product-tag">عرض خاص</span>
                             <div class="product-title">{{ $product->name }}</div>
                             <div class="product-price">{{ number_format($product->price, 2) }} د.أ</div>
-                            <div class="product-installment">
-                                أو {{ $product->installments_count ?? 4 }} دفعات بدون فوائد بقيمة {{ number_format($product->price / ($product->installments_count ?? 4), 2) }} د.أ
-                            </div>
+                           <div class="product-installment">
+    {{ ($product->installments_count ?: 4) }} دفعات بدون فوائد بقيمة 
+    {{ number_format($product->price / ($product->installments_count ?: 4), 2) }} د.أ
+</div>
                         </div>
                     </div>
                     @empty
